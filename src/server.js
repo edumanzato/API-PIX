@@ -32,8 +32,35 @@ axios({
     data: {
         grant_type: 'client_credentials'
     }
-}).then((response) => console.log(response.data));
+}).then((response) => {
 
+    const accessToken = response.data?.access_token;
+
+    const reqGN = axios.create({
+        baseURL: process.env.GN_ENDPOINT,
+        httpsAgent: agent,
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content_type' : 'application/json'
+        }
+    });
+
+    const dataCob = {
+        calendario: {
+            expiracao: 3600
+        },
+
+        valor: {
+            original: '100.00'
+        },
+        chave: '31988366895',
+        solicitacaoPagador: 'Primeiro teste cobrança Pix. '
+    };
+
+ 
+    reqGN.post('/v2/cob', dataCob).then((response) => console.log(response.data)
+    );
+});
 //console.log(process.env.GN_CLIENT_ID);
 
 
