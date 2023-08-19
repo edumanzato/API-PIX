@@ -2,49 +2,24 @@ if (process.env.NODE_ENV !== 'production') {
     require('dotenv').config()
 }
 
-const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
-const https = require('https');
+const express = require('express');
+const bodyParser = require('body-parser');
+const GNRequest = require('./apis/gerencianet');
 
+const app = express();
 
-const cert = fs.readFileSync(
-    path.resolve(__dirname, `../certs/${process.env.GN_CERT}`)
-)
+app.use(bodyParser.json());
 
-const agent = new https.Agent({
-    pfx: cert,
-    passphrase: ''
+app.set('view engine', 'ejs');
+app.set('views', 'src/views');
+
+const reqGNAlready = GNRequest({
+    clientID: process.env.GN_CLIENT_ID,
+    clientSecret: process.env.GN_CLIENT_SECRET
 });
 
-const credentials = Buffer.from(
-    `${process.env.GN_CLIENT_ID}:${process.env.GN_CLIENT_SECRET}`
-).toString('base64');
-
-axios({
-    method: 'POST',
-    url: `${process.env.GN_ENDPOINT}/oauth/token`,
-    headers: {
-        Authorization: `Basic ${credentials}`,
-        'Content-Type': 'application/json'
-    },
-    httpsAgent: agent,
-    data: {
-        grant_type: 'client_credentials'
-    }
-}).then((response) => {
-
-    const accessToken = response.data?.access_token;
-
-    const reqGN = axios.create({
-        baseURL: process.env.GN_ENDPOINT,
-        httpsAgent: agent,
-        headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content_type' : 'application/json'
-        }
-    });
-
+app.get('/', async (req, res) => {
+    const reqGN = await reqGNAlready;
     const dataCob = {
         calendario: {
             expiracao: 3600
@@ -57,19 +32,35 @@ axios({
         solicitacaoPagador: 'Primeiro teste cobrança Pix. '
     };
 
- 
-    reqGN.post('/v2/cob', dataCob).then((response) => console.log(response.data)
-    );
+    const cobResponse = await reqGN.post('/v2/cob', dataCob);
+    const qrcodeResponse = await reqGN.get(`/v2/loc/${cobResponse.data.loc.id}/qrcode`);
+
+    res.render('qrcode.ejs', { qrcodeImage: qrcodeResponse.data.imagemQrcode });
+    
 });
-//console.log(process.env.GN_CLIENT_ID);
+
+app.get('/cobrancas', async (req, res) => {
+    const reqGN = await reqGNAlready;
+
+    const cobResponse = await reqGN.get('/v2/cob?inicio=2023-08-01T16:01:35Z&fim=2023-08-17T20:10:00Z');
+
+    res.send(cobResponse.data);
+});
+
+app.get('/pixrecebidos', async (req, res) => {
+    const reqGN = await reqGNAlready;
+
+    const pixRecebidos = await reqGN.get('/v2/pix?inicio=2023-08-01T00:00:00Z&fim=2023-08-17T23:59:59Z');
+
+    res.send(pixRecebidos.data);
+});
+
+app.post('/webhook(/pix)?', async (req, res) => {
+    console.log(req.body);
+    res.send('200'); 
+});
 
 
-/*
-curl --request POST \
-  --url htpps://https//api-pix-h.gerencianet.com.br/oauth/token \
-  --header 'Authorization: Basic Q2xpZW50X0lkXzUzZjExMjhlZmFhYTdiZmQ1MDc1MzVlODU2MzU0N2RmNDI4ZmNmMjg6Q2xpZW50X1NlY3JldF9kNjJlZjIzNWRhMmMwNDdlMTA1MWI1YThhZTA1NzBiYjExY2NkOGYx' \
-  --header 'Content-Type: application/json' \
-  --header 'User-Agent: Insomnia/2023.5.3' \
-  --data '{
-    "grant_type": "client_credentials"
-}'*/
+app.listen(8000, () => {
+    console.log('running');
+});
