@@ -23,12 +23,37 @@
             display: block;
             margin: 0 auto;
         }
+        
+        pre {
+            margin-top: 20px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <div class="content">
-        <h1>MEU 1º QR CODE</h1>
+        <h1>QR CODE</h1>
         <img src="<%= qrcodeImage %>">
+        <pre id="qrcodeText">
+            <%= qrcode %>
+        </pre>
     </div>
+    
+    <script>
+        const qrcodeText = document.getElementById("qrcodeText");
+
+        qrcodeText.addEventListener("click", () => {
+            const textToCopy = qrcodeText.innerText.trim();
+
+            const textarea = document.createElement("textarea");
+            textarea.value = textToCopy;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textarea);
+
+            alert("Copiado para a área de transferência.");
+        });
+    </script>
 </body>
 </html>

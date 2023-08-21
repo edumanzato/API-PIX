@@ -6,6 +6,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const GNRequest = require('./apis/gerencianet');
 
+
 const app = express();
 
 app.use(bodyParser.json());
@@ -26,17 +27,20 @@ app.get('/', async (req, res) => {
         },
 
         valor: {
-            original: '100.00'
+            original: '0.10'
         },
-        chave: '31988366895',
+        chave: '585f3855-d7f8-455e-b3c2-8aabdefd5fb6',
         solicitacaoPagador: 'Primeiro teste cobrança Pix. '
     };
 
     const cobResponse = await reqGN.post('/v2/cob', dataCob);
     const qrcodeResponse = await reqGN.get(`/v2/loc/${cobResponse.data.loc.id}/qrcode`);
 
-    res.render('qrcode.ejs', { qrcodeImage: qrcodeResponse.data.imagemQrcode });
-    
+    //res.render('qrcode.ejs', { qrcodeImage: qrcodeResponse.data.imagemQrcode });
+    res.render('qrcode.ejs', {
+        qrcodeImage: qrcodeResponse.data.imagemQrcode,
+        qrcode: qrcodeResponse.data.qrcode
+    });
 });
 
 app.get('/cobrancas', async (req, res) => {
@@ -55,10 +59,6 @@ app.get('/pixrecebidos', async (req, res) => {
     res.send(pixRecebidos.data);
 });
 
-app.post('/webhook(/pix)?', async (req, res) => {
-    console.log(req.body);
-    res.send('200'); 
-});
 
 
 app.listen(8000, () => {
