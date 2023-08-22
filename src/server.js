@@ -59,7 +59,10 @@ app.get('/pixrecebidos', async (req, res) => {
     res.send(pixRecebidos.data);
 });
 
-
+app.post('/webhook(/pix)?', (req, res) => {
+    console.log(req.body);
+    res.send('200');
+})
 
 app.listen(8000, () => {
     console.log('running');
